@@ -25,7 +25,7 @@ app.get(/new\/(.*)/, function (req, res) {
 	var url = req.params[0];
 	if (isURL(url)){
 		var k = store(url);
-		res.send({"original_url": url,"short_url":"https://fcc-shorturl-fingerection.c9users.io/"+k});
+		res.send({"original_url": url,"short_url":"https://fingerection-fcc-shorturl.herokuapp.com/"+k});
 	}
 	else {
 		res.send({"error":"URL invalid"});
