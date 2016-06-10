@@ -1,33 +1,44 @@
-'use strict';
-
 var express = require('express');
-var routes = require('./app/routes/index.js');
-var mongoose = require('mongoose');
-var passport = require('passport');
-var session = require('express-session');
-
 var app = express();
-require('dotenv').load();
-require('./app/config/passport')(passport);
 
-mongoose.connect(process.env.MONGO_URI);
+function isURL(str) {
+     var urlRegex = '^(?!mailto:)(?:(?:http|https|ftp)://)(?:\\S+(?::\\S*)?@)?(?:(?:(?:[1-9]\\d?|1\\d\\d|2[01]\\d|22[0-3])(?:\\.(?:1?\\d{1,2}|2[0-4]\\d|25[0-5])){2}(?:\\.(?:[0-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-4]))|(?:(?:[a-z\\u00a1-\\uffff0-9]+-?)*[a-z\\u00a1-\\uffff0-9]+)(?:\\.(?:[a-z\\u00a1-\\uffff0-9]+-?)*[a-z\\u00a1-\\uffff0-9]+)*(?:\\.(?:[a-z\\u00a1-\\uffff]{2,})))|localhost)(?::\\d{2,5})?(?:(/|\\?|#)[^\\s]*)?$';
+     var url = new RegExp(urlRegex, 'i');
+     return str.length < 2083 && url.test(str);
+}
 
-app.use('/controllers', express.static(process.cwd() + '/app/controllers'));
-app.use('/public', express.static(process.cwd() + '/public'));
-app.use('/common', express.static(process.cwd() + '/app/common'));
+var nextid = 0;
+var urlmapping = {};
 
-app.use(session({
-	secret: 'secretClementine',
-	resave: false,
-	saveUninitialized: true
-}));
+function store(url) {
+	var key = nextid.toString();
+	urlmapping[key] = url;
+	nextid ++;
+	return key;
+}
 
-app.use(passport.initialize());
-app.use(passport.session());
+function fetch(k) {
+	return urlmapping[k];
+}
 
-routes(app, passport);
+app.get(/new\/(.*)/, function (req, res) {
+	var url = req.params[0];
+	if (isURL(url)){
+		var k = store(url);
+		res.send({"original_url": url,"short_url":"https://fcc-shorturl-fingerection.c9users.io/"+k});
+	}
+	else {
+		res.send({"error":"URL invalid"});
+	}
+});
+
+app.get(/(\d+)/, function(req, res) {
+	var key = req.params[0];
+	var url = fetch(key);
+	res.redirect(url);
+});
 
 var port = process.env.PORT || 8080;
 app.listen(port,  function () {
-	console.log('Node.js listening on port ' + port + '...');
+  console.log('Example app listening on port'+port);
 });
